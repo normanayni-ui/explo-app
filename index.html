@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+
 
 <link rel="manifest" href="manifest.json">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-    <title>Reporte Diario de Carga</title>
+<title>Reporte Diario de Carga</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background-color: #e9ecef; color: #333; }
@@ -163,7 +165,7 @@
 
     <!-- Lista de Áreas -->
     <datalist id="listaAreas">
-       <option value="TALLER">
+        <option value="TALLER">
         <option value="POZO">
         <option value="ROCAS2">
         <option value="ROCAS3">
@@ -175,7 +177,7 @@
     <!-- 1. Datos del Encabezado -->
     <div class="sheet-container">
         <div class="header-logo">
-            <img src="https://z-cdn-media.chatglm.cn/files/cdadb8c6-d575-4b0b-8624-fef72d27bb7c.png" alt="Explo Norte">
+            <img src="logo.png" alt="Explo Norte">
             <div class="title-box">Anotar con claridad los datos de patente y litros escribir nombre legible de quien carga</div>
         </div>
         
@@ -287,7 +289,7 @@
     <script>
         var registros = [];
         var contador = 0;
-        var logoUrl = "https://z-cdn-media.chatglm.cn/files/cdadb8c6-d575-4b0b-8624-fef72d27bb7c.png";
+        var logoUrl = "logo.png"; // Cambiado a ruta local según corrección anterior
 
         window.onload = function() {
             cargarHistorial();
@@ -427,9 +429,9 @@
             };
 
             var styleTD = "border: 1px solid #000000; text-align: center; padding: 5px; font-size: 12px;";
-            var styleTH = "border: 1px solid #000000; text-align: center; padding: 5px; background-color: #007bff; color: white; font-weight: bold;";
+            var styleTH = "border: 1px solid #000000; text-align: center; padding: 5px; background-color: #007bff; color: white; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact;";
             
-            var htmlTable = "<table style='border-collapse: collapse; width: 100%; font-family: Arial;'>";
+            var htmlTable = "<table style='border-collapse: collapse; width: 100%; font-family: Arial; -webkit-print-color-adjust: exact; print-color-adjust: exact;'>";
             htmlTable += "<tr>";
             htmlTable += "<td colspan='2' style='" + styleTD + " text-align: left; vertical-align: top;'><img src='" + logoUrl + "' height='50' style='height:50px;'></td>";
             htmlTable += "<td colspan='8' style='" + styleTD + " font-weight: bold; text-align: center; vertical-align: middle; font-size: 13px;'>ANOTAR CON CLARIDAD LOS DATOS DE PATENTE Y LITROS ESCRIBIR NOMBRE LEGIBLE DE QUIEN CARGA</td>";
@@ -468,7 +470,6 @@
             htmlExcel += "<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte</x:Name><x:WorksheetOptions><x:PageSetup><x:Layout x:Orientation='Portrait'/><x:PageMargins x:Left='0.5' x:Right='0.5' x:Top='0.5' x:Bottom='0.5'/></x:PageSetup></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->";
             htmlExcel += "</head><body>" + tabla + "</body></html>";
 
-            // Convertir a Base64 para saltar bloqueos de descarga en Android WebView
             var encodedHtml = btoa(unescape(encodeURIComponent(htmlExcel)));
             var dataUri = 'data:application/vnd.ms-excel;base64,' + encodedHtml;
             
@@ -480,16 +481,18 @@
             document.body.removeChild(a);
         }
 
-        // FUNCIÓN IMPRIMIR/PDF CORREGIDA PARA ANDROID (iframe oculto)
+        // FUNCIÓN IMPRIMIR/PDF CORREGIDA PARA ANDROID (iframe con dimensiones reales)
         function imprimir(datos) {
             var tabla = generarTablaCompleta(datos);
-            var htmlContent = '<html><head><title>Reporte de Carga</title><style>@page { size: letter portrait; margin: 1cm; } table { width:100%; border-collapse: collapse; } td, th { border: 1px solid #000; padding: 5px; font-size: 12px; text-align: center; } img { height: 50px; }</style></head><body>' + tabla + '</body></html>';
+            var htmlContent = '<html><head><title>Reporte de Carga</title><style>@page { size: letter portrait; margin: 1cm; } body { margin: 0; } table { width:100%; border-collapse: collapse; -webkit-print-color-adjust: exact; print-color-adjust: exact; } td, th { border: 1px solid #000; padding: 5px; font-size: 12px; text-align: center; } img { height: 50px; }</style></head><body>' + tabla + '</body></html>';
             
-            // Crear un iframe oculto para renderizar la impresión
             var iframe = document.createElement('iframe');
+            // Se le dan dimensiones reales y se mueve fuera de la vista para que Android lo renderice
             iframe.style.position = 'absolute';
-            iframe.style.width = '0px';
-            iframe.style.height = '0px';
+            iframe.style.top = '-10000px';
+            iframe.style.left = '0';
+            iframe.style.width = '800px';
+            iframe.style.height = '1200px';
             iframe.style.border = 'none';
             document.body.appendChild(iframe);
             
@@ -498,13 +501,13 @@
             doc.write(htmlContent);
             doc.close();
             
-            // Timeout para asegurar que el contenido cargue antes de imprimir
+            // Timeout aumentado para asegurar renderización en móvil
             setTimeout(function() {
                 iframe.contentWindow.focus();
                 iframe.contentWindow.print();
-                // Limpiar el iframe después de imprimir
-                setTimeout(function() { document.body.removeChild(iframe); }, 1000);
-            }, 500);
+                // Se espera más tiempo antes de destruirlo para que el sistema de PDF alcance a leerlo
+                setTimeout(function() { document.body.removeChild(iframe); }, 3000);
+            }, 1000);
         }
 
         function guardarPlanilla() {
@@ -601,7 +604,6 @@
     });
   }
 </script>
-
 
 </body>
 </html>
