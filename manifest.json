@@ -1,15 +1,17 @@
 {
   "name": "Reporte Explo Norte",
   "short_name": "Explo App",
+  "description": "Aplicación offline para el registro diario de carga de combustible y generación de reportes en Excel y PDF.",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
   "icons": [
     {
-      "src": "https://z-cdn-media.chatglm.cn/files/cdadb8c6-d575-4b0b-8624-fef72d27bb7c.png",
+      "src": "logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
