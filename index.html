@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <title>Reporte Diario de Carga</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background-color: #e9ecef; color: #333; }
+        h2 { text-align: center; font-size: 20px; margin-top: 0; color: #2c3e50; text-transform: uppercase; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; }
+        
+        .sheet-container { background: #fff; padding: 15px; border: 2px solid #000; box-shadow: 0 4px 8px rgba(0,0,0,0.2); margin-bottom: 20px; }
+        .sheet-title { text-align: center; font-size: 14px; font-weight: bold; text-transform: uppercase; border: 1px solid #000; padding: 8px; margin-bottom: 15px; background: #f8f9fa; }
+        
+        .excel-grid { border: 1px solid #000; display: grid; gap: 0; margin-bottom: 15px; }
+        .excel-cell { border: 1px solid #000; padding: 8px; display: flex; flex-direction: column; justify-content: center; background: #fff; }
+        .excel-cell.label { background: #f1f3f5; font-weight: bold; font-size: 13px; color: #000; }
+        .excel-cell.text-only { background: #f1f3f5; font-size: 14px; color: #555; font-weight: normal; }
+        
+        label { font-size: 12px; font-weight: bold; color: #495057; margin-bottom: 4px; text-transform: uppercase; }
+        input, select { width: 100%; border: none; border-bottom: 2px solid #007bff; padding: 6px 2px; font-size: 16px; background: transparent; outline: none; font-weight: bold; color: #000; }
+        input[readonly] { border-bottom: 2px dashed #6c757d; color: #6c757d; font-weight: normal; }
+        input:focus, select:focus { background: #e7f5ff; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+        
+        .records-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+        .records-table th, .records-table td { border: 1px solid #000; padding: 6px; text-align: center; }
+        .records-table th { background: #007bff; color: white; }
+        .records-table tr:nth-child(even) { background: #f8f9fa; }
+        .btn-del { background: #dc3545; color: white; border: none; padding: 4px 8px; cursor: pointer; border-radius: 3px; font-size: 11px; width: 100%; }
+        
+        .btn { width: 100%; border: none; padding: 15px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; text-transform: uppercase; }
+        .btn-add { background: #28a745; color: white; margin-top: 15px; border: 2px solid #1e7e34; }
+        .btn-export { background: #fff; color: #000; border: 2px solid #000; }
+        .btn-print { background: #000; color: #fff; border: 2px solid #000; }
+        .btn-save { background: #17a2b8; color: white; border: 2px solid #117a8b; }
+        
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; position: sticky; bottom: 0; background: #e9ecef; padding: 15px 0; }
+        .counter-box { text-align: center; border: 1px solid #000; padding: 8px; margin-bottom: 10px; font-weight: bold; background: #f8f9fa; }
+
+        .header-logo { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; border: 1px solid #000; padding: 10px; background: #fff; }
+        .header-logo img { height: 50px; width: auto; }
+        .header-logo .title-box { flex: 1; text-align: center; font-size: 13px; font-weight: bold; text-transform: uppercase; }
+
+        .hist-item { border: 1px solid #ccc; background: #fff; padding: 10px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .hist-info { font-size: 14px; margin-bottom: 8px; }
+        .hist-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .btn-sm { padding: 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; text-transform: uppercase;}
+        .btn-sm.excel { background: #28a745; color: white; }
+        .btn-sm.pdf { background: #dc3545; color: white; }
+        .btn-sm.del { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+
+    <h2>Formato Planilla de Carga</h2>
+
+    <!-- Lista de Vehículos -->
+    <datalist id="listaVehiculos">
+        <option value="HXHF-16">SEMIREMOLQUE</option>
+        <option value="HXHF-17">SEMIREMOLQUE</option>
+        <option value="KYRX-20">SEMIREMOLQUE</option>
+        <option value="JF-9068">SEMIREMOLQUE</option>
+        <option value="JH-6300">SEMIREMOLQUE</option>
+        <option value="JH-9071">SEMIREMOLQUE</option>
+        <option value="JL-4232">SEMIREMOLQUE</option>
+        <option value="GRHC-73">SEMIREMOLQUE</option>
+        <option value="JE-7855">SEMIREMOLQUE</option>
+        <option value="JH-9145">SEMIREMOLQUE</option>
+        <option value="JJ-5173">SEMIREMOLQUE</option>
+        <option value="CBYC-23">TRACTO CAMION</option>
+        <option value="CLWT-84">TRACTO CAMION</option>
+        <option value="CSYH-21">TRACTO CAMION</option>
+        <option value="DLPS-70">TRACTO CAMION</option>
+        <option value="DRHY-81">TRACTO CAMION</option>
+        <option value="GTKL-20">TRACTO CAMION</option>
+        <option value="CGRC-25">CAMION ALJIBE</option>
+        <option value="CYJT-34">CAMION ALJIBE</option>
+        <option value="CSGD-13">CAMION ALJIBE</option>
+        <option value="WW70-55">CAMION ALJIBE</option>
+        <option value="BBBZ-91">CAMION ALJIBE</option>
+        <option value="CYRV-81">CAMION ALJIBE</option>
+        <option value="WR73-05">CAMION ALJIBE</option>
+        <option value="LRVR-88">CAMION ALJIBE</option>
+        <option value="LRVR-89">CAMION ALJIBE</option>
+        <option value="BXCK-72">CAMION TOLVA</option>
+        <option value="CLLZ-87">CAMION TOLVA</option>
+        <option value="FBTS-90">CAMION TOLVA</option>
+        <option value="FBTS-91">CAMION TOLVA (Siniestrado)</option>
+        <option value="FBTT-54">CAMION TOLVA</option>
+        <option value="FBTX-47">CAMION TOLVA (Siniestrado)</option>
+        <option value="GSKL-54">CAMION TOLVA</option>
+        <option value="JJYH-82">CAMION TOLVA</option>
+        <option value="JJYH-83">CAMION TOLVA</option>
+        <option value="WK63-10">CAMION TOLVA</option>
+        <option value="PTGF-91">CAMION TOLVA</option>
+        <option value="PTGF-95">CAMION TOLVA</option>
+        <option value="RBKY-18">CAMION TOLVA</option>
+        <option value="TDXR-11">CAMION TOLVA</option>
+        <option value="TDXR-12">CAMION TOLVA</option>
+        <option value="TDXR-13">CAMION TOLVA</option>
+        <option value="BYXD-23">CAMION PETROLERO</option>
+        <option value="PTRB-46">CAMION PETROLERO</option>
+        <option value="KVWS-48">CAMION CARGO</option>
+        <option value="CBXX-70">CAMION PLANO</option>
+        <option value="CTZH-10">CAMION PLANO</option>
+        <option value="TR-7337">CAMION PLANO</option>
+        <option value="WA-8513">CAMION PLANO</option>
+        <option value="FSFS-42">CAMIONETA</option>
+        <option value="KZPL-73">CAMIONETA</option>
+        <option value="KZPL-74">CAMIONETA (Robada)</option>
+        <option value="KZPL-75">CAMIONETA (Robada)</option>
+        <option value="KTBL-54">CAMIONETA</option>
+        <option value="PYXJ-11">CAMIONETA</option>
+        <option value="GSKD-97">CAMIONETA</option>
+        <option value="FBFD-44">CAMIONETA</option>
+        <option value="ZH96-21">CAMIONETA</option>
+        <option value="FCBF-59">CAMIONETA</option>
+        <option value="FCRW-92">CAMIONETA</option>
+        <option value="RKTK-52">CAMIONETA</option>
+        <option value="RLPH-41">CAMIONETA</option>
+        <option value="DLWL-90">FURGON</option>
+        <option value="LVTC-82">FURGON</option>
+        <option value="PCDT-77">FURGON</option>
+        <option value="XW70-83">FURGON</option>
+        <option value="CZHV-28">BULLDOZER</option>
+        <option value="DSSP-91">EXCAVADORA</option>
+        <option value="KVWW-96">EXCAVADORA</option>
+        <option value="DVDK-73">EXCAVADORA</option>
+        <option value="GFJG-95">EXCAVADORA</option>
+        <option value="DSSP-92">EXCAVADORA</option>
+        <option value="DVPW-82">EXCAVADORA</option>
+        <option value="SGTZ-76">EXCAVADORA</option>
+        <option value="TVFD-66">EXCAVADORA</option>
+        <option value="FJGF-65">GRUA HORQUILLA</option>
+        <option value="FBTV-11">MINICARGADOR</option>
+        <option value="FBTY-41">MINICARGADOR</option>
+        <option value="DPZZ-92">MOTONIVELADORA</option>
+        <option value="KVWS-54">MOTONIVELADORA</option>
+        <option value="PFSR-45">MOTONIVELADORA</option>
+        <option value="DCR20 3211030">PERFORADORA</option>
+        <option value="HCR 900-D 1211011">PERFORADORA</option>
+        <option value="Y 00 9376 CY">PERFORADORA</option>
+        <option value="180">PERFORADORA</option>
+        <option value="HCR C180R">PERFORADORA</option>
+        <option value="SIN PATENTE">P SELECCIONADORA</option>
+        <option value="SIN PATENTE">CHANCADORA</option>
+        <option value="DWCJ-31">RETROEXCAVADORA</option>
+        <option value="KVJW-15">RETROEXCAVADORA</option>
+        <option value="LDWP-92">RETROEXCAVADORA</option>
+        <option value="FBTV-10">RODILLO HAMM</option>
+        <option value="PLCZ-11">RODILLO SANY</option>
+        <option value="SERIE A 13O-002">MARTILLO HIDRAULICO</option>
+        <option value="TVFD-65">CARGADOR FRONTAL</option>
+        <option value="TBCG-65">CARGADOR FRONTAL</option>
+        <option value="PFSJ-24">CARGADOR FRONTAL</option>
+    </datalist>
+
+    <!-- Lista de Áreas -->
+    <datalist id="listaAreas">
+       <option value="TALLER">
+        <option value="POZO">
+        <option value="ROCAS2">
+        <option value="ROCAS3">
+        <option value="SANTA-CATALINA">
+        <option value="ARENALES">
+        <option value="DIA-EXPLONORTE">
+    </datalist>
+
+    <!-- 1. Datos del Encabezado -->
+    <div class="sheet-container">
+        <div class="header-logo">
+            <img src="https://z-cdn-media.chatglm.cn/files/cdadb8c6-d575-4b0b-8624-fef72d27bb7c.png" alt="Explo Norte">
+            <div class="title-box">Anotar con claridad los datos de patente y litros escribir nombre legible de quien carga</div>
+        </div>
+        
+        <div class="excel-grid grid-2">
+            <div class="excel-cell label">CISTERNA DE LA QUE CARGO:</div>
+            <div class="excel-cell text-only">CISTERNA</div>
+            
+            <div class="excel-cell label">CARGA LTS:</div>
+            <div class="excel-cell"><input type="number" id="cargaLts"></div>
+            
+            <div class="excel-cell label">PATENTE N°:</div>
+            <div class="excel-cell">
+                <select id="patenteCisterna" onchange="reiniciarPlanilla()">
+                    <option value="PTRB-46">PTRB-46</option>
+                    <option value="BYXD-23">BYXD-23</option>
+                </select>
+            </div>
+            
+            <div class="excel-cell label">FECHA DE CARGA:</div>
+            <div class="excel-cell"><input type="date" id="fechaCarga"></div>
+            
+            <div class="excel-cell label">MARCADOR:</div>
+            <div class="excel-cell"><input type="number" id="marcadorInicial" oninput="actualizarUI()" placeholder="Inicial"></div>
+
+            <div class="excel-cell label">ODOMETRO:</div>
+            <div class="excel-cell"><input type="number" id="odometro"></div>
+        </div>
+    </div>
+
+    <!-- 2. Formulario de Ingreso de Vehículos -->
+    <div class="sheet-container">
+        <div class="sheet-title">Ingreso de Vehículo</div>
+        
+        <div class="excel-grid grid-2">
+            <div class="excel-cell label">PATENTE VEHÍCULO:</div>
+            <div class="excel-cell"><input type="text" id="n_patente" list="listaVehiculos" oninput="autoFechaHora(); autoCompletarEquipo();" placeholder="Escriba o seleccione"></div>
+            
+            <div class="excel-cell label">LITROS (L):</div>
+            <div class="excel-cell"><input type="number" id="n_litros" oninput="autoFechaHora()" placeholder="Ej: 50"></div>
+            
+            <div class="excel-cell label">FECHA:</div>
+            <div class="excel-cell"><input type="text" id="n_fecha" readonly placeholder="Automático"></div>
+            
+            <div class="excel-cell label">HORA:</div>
+            <div class="excel-cell"><input type="text" id="n_hora" readonly placeholder="Automático"></div>
+        </div>
+
+        <div class="excel-grid grid-2">
+            <div class="excel-cell label">EQUIPO:</div>
+            <div class="excel-cell"><input type="text" id="n_equipo" readonly placeholder="Se autocompleta"></div>
+            
+            <div class="excel-cell label">MARCADOR VEHÍCULO:</div>
+            <div class="excel-cell"><input type="text" id="n_marcador" readonly placeholder="Automático"></div>
+        </div>
+
+        <div class="excel-grid grid-2">
+            <div class="excel-cell label">HORÓMETRO INI:</div>
+            <div class="excel-cell"><input type="number" id="n_horoini"></div>
+            
+            <div class="excel-cell label">HORÓMETRO FIN:</div>
+            <div class="excel-cell"><input type="number" id="n_horofin"></div>
+        </div>
+
+        <div class="excel-grid grid-2">
+            <div class="excel-cell label">CONDUCTOR:</div>
+            <div class="excel-cell"><input type="text" id="n_conductor"></div>
+            
+            <div class="excel-cell label">ÁREA:</div>
+            <div class="excel-cell"><input type="text" id="n_area" list="listaAreas" placeholder="Seleccione área"></div>
+        </div>
+
+        <button class="btn btn-add" onclick="agregarRegistro()">+ AGREGAR A PLANILLA</button>
+    </div>
+
+    <!-- 3. Lista de Registros Actuales -->
+    <div class="sheet-container">
+        <div class="counter-box">REGISTROS INGRESADOS: <span id="contador">0</span> / 25</div>
+        <div style="overflow-x: auto;">
+            <table class="records-table">
+                <thead>
+                    <tr>
+                        <th>#</th><th>PATENTE</th><th>EQUIPO</th><th>LITROS</th><th>MARCADOR</th><th>ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody id="listaRegistros">
+                    <tr><td colspan="6" style="text-align:center; color:#888;">No hay registros. Agregue el primero arriba.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 4. Botones Finales -->
+    <div class="actions">
+        <button class="btn btn-export" onclick="exportarExcel()">Descargar Excel</button>
+        <button class="btn btn-print" onclick="imprimir()">Imprimir / PDF</button>
+    </div>
+    <div style="margin-bottom: 30px;">
+        <button class="btn btn-save" onclick="guardarPlanilla()">Guardar en Historial de App</button>
+    </div>
+
+    <!-- 5. Historial -->
+    <div class="sheet-container">
+        <div class="sheet-title">Historial de Trabajo Guardado</div>
+        <div id="historialContainer">
+            <p style="text-align: center; color: #888;">No hay planillas guardadas en el historial.</p>
+        </div>
+    </div>
+
+    <script>
+        var registros = [];
+        var contador = 0;
+        var logoUrl = "https://z-cdn-media.chatglm.cn/files/cdadb8c6-d575-4b0b-8624-fef72d27bb7c.png";
+
+        window.onload = function() {
+            cargarHistorial();
+        };
+
+        function reiniciarPlanilla() {
+            if (registros.length > 0) {
+                var confirmar = confirm("Al cambiar la Patente N°, se borrarán los registros actuales para comenzar un nuevo conteo con el Marcador inicial. ¿Desea continuar?");
+                if (!confirmar) { return; }
+            }
+            registros = [];
+            contador = 0;
+            actualizarUI();
+            limpiarFormulario();
+            autoFechaHora();
+        }
+
+        function autoCompletarEquipo() {
+            var patenteIngresada = document.getElementById('n_patente').value.trim().toUpperCase();
+            var opciones = document.querySelectorAll('#listaVehiculos option');
+            var equipoEncontrado = false;
+
+            opciones.forEach(function(opt) {
+                if (opt.value.toUpperCase() === patenteIngresada) {
+                    document.getElementById('n_equipo').value = opt.text;
+                    equipoEncontrado = true;
+                }
+            });
+
+            if (!equipoEncontrado && patenteIngresada !== '') {
+                document.getElementById('n_equipo').value = 'Equipo no encontrado';
+            } else if (patenteIngresada === '') {
+                document.getElementById('n_equipo').value = '';
+            }
+        }
+
+        function autoFechaHora() {
+            var patente = document.getElementById('n_patente').value;
+            var litros = parseFloat(document.getElementById('n_litros').value);
+            
+            if (patente.length > 0) {
+                var ahora = new Date();
+                document.getElementById('n_fecha').value = ahora.toISOString().split('T')[0];
+                document.getElementById('n_hora').value = ahora.toTimeString().split(' ')[0].substring(0,5);
+            } else {
+                document.getElementById('n_fecha').value = '';
+                document.getElementById('n_hora').value = '';
+            }
+
+            if (!isNaN(litros) && litros > 0) {
+                var base = (registros.length === 0) ? (parseFloat(document.getElementById('marcadorInicial').value) || 0) : registros[registros.length - 1].marcador;
+                document.getElementById('n_marcador').value = base - litros;
+            } else {
+                document.getElementById('n_marcador').value = '';
+            }
+        }
+
+        function agregarRegistro() {
+            if (contador >= 25) { alert("Ya alcanzó el máximo de 25 registros."); return; }
+            var patente = document.getElementById('n_patente').value;
+            var litros = document.getElementById('n_litros').value;
+            
+            if (!patente || !litros) { alert("Complete al menos Patente y Litros."); return; }
+
+            var registro = {
+                fecha: document.getElementById('n_fecha').value,
+                hora: document.getElementById('n_hora').value,
+                patente: patente,
+                equipo: document.getElementById('n_equipo').value,
+                horoini: document.getElementById('n_horoini').value,
+                horofin: document.getElementById('n_horofin').value,
+                litros: parseFloat(litros),
+                conductor: document.getElementById('n_conductor').value,
+                area: document.getElementById('n_area').value,
+                marcador: parseFloat(document.getElementById('n_marcador').value)
+            };
+
+            registros.push(registro);
+            contador++;
+            actualizarUI();
+            limpiarFormulario();
+        }
+
+        function eliminarRegistro(index) {
+            registros.splice(index, 1);
+            contador--;
+            recalcularMarcadores();
+            actualizarUI();
+        }
+
+        function recalcularMarcadores() {
+            var marcadorBase = parseFloat(document.getElementById('marcadorInicial').value) || 0;
+            var marcadorAnterior = marcadorBase;
+            for (var i = 0; i < registros.length; i++) {
+                registros[i].marcador = marcadorAnterior - registros[i].litros;
+                marcadorAnterior = registros[i].marcador;
+            }
+        }
+
+        function actualizarUI() {
+            var listaDiv = document.getElementById('listaRegistros');
+            document.getElementById('contador').innerText = registros.length;
+            if (registros.length === 0) {
+                listaDiv.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#888;">No hay registros.</td></tr>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < registros.length; i++) {
+                var r = registros[i];
+                html += '<tr><td>' + (i + 1) + '</td><td>' + r.patente + '</td><td>' + r.equipo + '</td><td>' + r.litros + '</td><td>' + r.marcador + '</td><td><button class="btn-del" onclick="eliminarRegistro(' + i + ')">BORRAR</button></td></tr>';
+            }
+            listaDiv.innerHTML = html;
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('n_patente').value = '';
+            document.getElementById('n_fecha').value = '';
+            document.getElementById('n_hora').value = '';
+            document.getElementById('n_equipo').value = '';
+            document.getElementById('n_horoini').value = '';
+            document.getElementById('n_horofin').value = '';
+            document.getElementById('n_litros').value = '';
+            document.getElementById('n_marcador').value = '';
+            document.getElementById('n_conductor').value = '';
+            document.getElementById('n_area').value = '';
+            document.getElementById('n_patente').focus(); 
+        }
+
+        function generarTablaCompleta(datos) {
+            var d = datos || {
+                cargaLts: document.getElementById('cargaLts').value,
+                patenteCisterna: document.getElementById('patenteCisterna').value,
+                fechaCarga: document.getElementById('fechaCarga').value,
+                marcadorInicial: document.getElementById('marcadorInicial').value,
+                odometro: document.getElementById('odometro').value,
+                registros: registros
+            };
+
+            var styleTD = "border: 1px solid #000000; text-align: center; padding: 5px; font-size: 12px;";
+            var styleTH = "border: 1px solid #000000; text-align: center; padding: 5px; background-color: #007bff; color: white; font-weight: bold;";
+            
+            var htmlTable = "<table style='border-collapse: collapse; width: 100%; font-family: Arial;'>";
+            htmlTable += "<tr>";
+            htmlTable += "<td colspan='2' style='" + styleTD + " text-align: left; vertical-align: top;'><img src='" + logoUrl + "' height='50' style='height:50px;'></td>";
+            htmlTable += "<td colspan='8' style='" + styleTD + " font-weight: bold; text-align: center; vertical-align: middle; font-size: 13px;'>ANOTAR CON CLARIDAD LOS DATOS DE PATENTE Y LITROS ESCRIBIR NOMBRE LEGIBLE DE QUIEN CARGA</td>";
+            htmlTable += "</tr>";
+
+            htmlTable += "<tr><td colspan='2' style='" + styleTD + " background-color:#f8f9fa;'><b>CISTERNA DE LA QUE CARGO:</b></td><td colspan='3' style='" + styleTD + " background-color:#f8f9fa; font-style: italic; color:#555;'>CISTERNA</td><td colspan='2' style='" + styleTD + " background-color:#f8f9fa;'><b>CARGA LTS:</b></td><td colspan='3' style='" + styleTD + "'>" + (d.cargaLts || '&nbsp;') + "</td></tr>";
+            htmlTable += "<tr><td colspan='2' style='" + styleTD + " background-color:#f8f9fa;'><b>PATENTE N°:</b></td><td colspan='3' style='" + styleTD + "'>" + (d.patenteCisterna || '&nbsp;') + "</td><td colspan='2' style='" + styleTD + " background-color:#f8f9fa;'><b>FECHA DE CARGA:</b></td><td colspan='3' style='" + styleTD + "'>" + (d.fechaCarga || '&nbsp;') + "</td></tr>";
+            htmlTable += "<tr><td colspan='2' style='" + styleTD + " background-color:#f8f9fa;'><b>MARCADOR:</b></td><td colspan='3' style='" + styleTD + "'>" + (d.marcadorInicial || '&nbsp;') + "</td><td colspan='2' style='" + styleTD + " background-color:#f8f9fa;'><b>ODOMETRO:</b></td><td colspan='3' style='" + styleTD + "'>" + (d.odometro || '&nbsp;') + "</td></tr>";
+            htmlTable += "<tr style='height:5px;'><td colspan='10' style='border:none;'>&nbsp;</td></tr>";
+            
+            htmlTable += "<tr>";
+            htmlTable += "<th style='" + styleTH + "'>FECHA</th><th style='" + styleTH + "'>HORA</th><th style='" + styleTH + "'>PATENTE</th><th style='" + styleTH + "'>EQUIPO</th><th style='" + styleTH + "'>HOROMETRO INICIAL</th><th style='" + styleTH + "'>HOROMETRO FINAL</th><th style='" + styleTH + "'>LITROS (L)</th><th style='" + styleTH + "'>CONDUCTOR</th><th style='" + styleTH + "'>AREA</th><th style='" + styleTH + "'>MARCADOR VEHICULO</th>";
+            htmlTable += "</tr>";
+
+            for (var i = 0; i < 25; i++) {
+                htmlTable += "<tr>";
+                if (i < d.registros.length) {
+                    var r = d.registros[i];
+                    htmlTable += "<td style='" + styleTD + "'>" + r.fecha + "</td><td style='" + styleTD + "'>" + r.hora + "</td><td style='" + styleTD + "'>" + r.patente + "</td><td style='" + styleTD + "'>" + r.equipo + "</td><td style='" + styleTD + "'>" + r.horoini + "</td><td style='" + styleTD + "'>" + r.horofin + "</td><td style='" + styleTD + "'>" + r.litros + "</td><td style='" + styleTD + "'>" + r.conductor + "</td><td style='" + styleTD + "'>" + r.area + "</td><td style='" + styleTD + "'>" + r.marcador + "</td>";
+                } else {
+                    for (var j = 0; j < 10; j++) {
+                        htmlTable += "<td style='" + styleTD + "'>&nbsp;</td>";
+                    }
+                }
+                htmlTable += "</tr>";
+            }
+            htmlTable += "</table>";
+            return htmlTable;
+        }
+
+        // FUNCIÓN EXCEL CORREGIDA PARA ANDROID (Base64)
+        function exportarExcel(datos) {
+            var tabla = generarTablaCompleta(datos);
+            var htmlExcel = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>";
+            htmlExcel += "<head><meta http-equiv='content-type' content='application/vnd.ms-excel; charset=UTF-8'/>";
+            htmlExcel += "<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Reporte</x:Name><x:WorksheetOptions><x:PageSetup><x:Layout x:Orientation='Portrait'/><x:PageMargins x:Left='0.5' x:Right='0.5' x:Top='0.5' x:Bottom='0.5'/></x:PageSetup></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->";
+            htmlExcel += "</head><body>" + tabla + "</body></html>";
+
+            // Convertir a Base64 para saltar bloqueos de descarga en Android WebView
+            var encodedHtml = btoa(unescape(encodeURIComponent(htmlExcel)));
+            var dataUri = 'data:application/vnd.ms-excel;base64,' + encodedHtml;
+            
+            var a = document.createElement('a');
+            a.href = dataUri;
+            a.download = 'Reporte_Carga.xls';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // FUNCIÓN IMPRIMIR/PDF CORREGIDA PARA ANDROID (iframe oculto)
+        function imprimir(datos) {
+            var tabla = generarTablaCompleta(datos);
+            var htmlContent = '<html><head><title>Reporte de Carga</title><style>@page { size: letter portrait; margin: 1cm; } table { width:100%; border-collapse: collapse; } td, th { border: 1px solid #000; padding: 5px; font-size: 12px; text-align: center; } img { height: 50px; }</style></head><body>' + tabla + '</body></html>';
+            
+            // Crear un iframe oculto para renderizar la impresión
+            var iframe = document.createElement('iframe');
+            iframe.style.position = 'absolute';
+            iframe.style.width = '0px';
+            iframe.style.height = '0px';
+            iframe.style.border = 'none';
+            document.body.appendChild(iframe);
+            
+            var doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(htmlContent);
+            doc.close();
+            
+            // Timeout para asegurar que el contenido cargue antes de imprimir
+            setTimeout(function() {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                // Limpiar el iframe después de imprimir
+                setTimeout(function() { document.body.removeChild(iframe); }, 1000);
+            }, 500);
+        }
+
+        function guardarPlanilla() {
+            if (registros.length === 0) {
+                alert("No hay registros para guardar.");
+                return;
+            }
+
+            var planilla = {
+                id: Date.now(),
+                titulo: document.getElementById('fechaCarga').value || 'Sin Fecha',
+                datos: {
+                    cargaLts: document.getElementById('cargaLts').value,
+                    patenteCisterna: document.getElementById('patenteCisterna').value,
+                    fechaCarga: document.getElementById('fechaCarga').value,
+                    marcadorInicial: document.getElementById('marcadorInicial').value,
+                    odometro: document.getElementById('odometro').value,
+                    registros: registros
+                }
+            };
+
+            var historial = JSON.parse(localStorage.getItem('historialPlanillas')) || [];
+            historial.push(planilla);
+            localStorage.setItem('historialPlanillas', JSON.stringify(historial));
+
+            alert("Planilla guardada en el historial correctamente.");
+            cargarHistorial();
+            
+            if(confirm("¿Desea limpiar la pantalla para comenzar una nueva planilla?")) {
+                registros = [];
+                contador = 0;
+                actualizarUI();
+                document.getElementById('cargaLts').value = '';
+                document.getElementById('fechaCarga').value = '';
+                document.getElementById('marcadorInicial').value = '';
+                document.getElementById('odometro').value = '';
+            }
+        }
+
+        function cargarHistorial() {
+            var historial = JSON.parse(localStorage.getItem('historialPlanillas')) || [];
+            var container = document.getElementById('historialContainer');
+
+            if (historial.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #888;">No hay planillas guardadas en el historial.</p>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < historial.length; i++) {
+                var p = historial[i];
+                html += '<div class="hist-item">';
+                html += '<div class="hist-info"><b>Fecha Guardado:</b> ' + p.datos.fechaCarga + ' | <b>Patente Cisterna:</b> ' + p.datos.patenteCisterna + ' | <b>Registros:</b> ' + p.datos.registros.length + '</div>';
+                html += '<div class="hist-actions">';
+                html += '<button class="btn-sm excel" onclick="descargarExcelHist(' + p.id + ')">Descargar Excel</button>';
+                html += '<button class="btn-sm pdf" onclick="descargarPDFHist(' + p.id + ')">Descargar PDF</button>';
+                html += '<button class="btn-sm del" onclick="eliminarHist(' + p.id + ')">Eliminar</button>';
+                html += '</div>';
+                html += '</div>';
+            }
+            container.innerHTML = html;
+        }
+
+        function descargarExcelHist(id) {
+            var historial = JSON.parse(localStorage.getItem('historialPlanillas')) || [];
+            var planilla = historial.find(function(p) { return p.id === id; });
+            if (planilla) {
+                exportarExcel(planilla.datos);
+            }
+        }
+
+        function descargarPDFHist(id) {
+            var historial = JSON.parse(localStorage.getItem('historialPlanillas')) || [];
+            var planilla = historial.find(function(p) { return p.id === id; });
+            if (planilla) {
+                imprimir(planilla.datos);
+            }
+        }
+
+        function eliminarHist(id) {
+            if (confirm("¿Está seguro de eliminar esta planilla del historial?")) {
+                var historial = JSON.parse(localStorage.getItem('historialPlanillas')) || [];
+                historial = historial.filter(function(p) { return p.id !== id; });
+                localStorage.setItem('historialPlanillas', JSON.stringify(historial));
+                cargarHistorial();
+            }
+        }
+    </script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js');
+    });
+  }
+</script>
+
+
+</body>
+</html>
